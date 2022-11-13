@@ -1,26 +1,18 @@
-# MIT License
-#
-# Copyright (c) 2022  Dr. Magnus Christ (mc0110)
-#
 # Crypto-Class for Strings with bonding the key with the machine.unique_id
 #
 #
-# This modules are using the machine_unique_number to generate the key for encrypt / decrypt
-# with the consequence, that the data are only on the target-system are usable and readable
-# 
-# Based on an ESP32 Micropython implementation of cryptographic but should also be useable on other hw-implementations (ports)
+# This modules are using the machine_unique_number for encrypt / decrypt
+# So the data is only on the target-system usable
+# based on ESP32 Micropython implementation of cryptographic
 #
 # reference:
 # https://pycryptodome.readthedocs.io/en/latest/src/cipher/classic.html#cbc-mode
 # https://docs.micropython.org/en/latest/library/ucryptolib.html
-#
  
 import os
 from ucryptolib import aes
 import machine
 
-
-# Cryptomodule: keys are generated with the chip_unique_id and with the random generator
 class crypto:
     def encrypt(text):
         BLOCK_SIZE = 32
@@ -41,6 +33,7 @@ class crypto:
         ct_bytes = iv + cipher.encrypt(text)
         return ct_bytes
 
+    # you need only one of this modules
     def decrypt(enc_bytes):
         BLOCK_SIZE = 32
         IV_SIZE = 16
@@ -56,27 +49,23 @@ class crypto:
         return cipher.decrypt(enc_bytes)[IV_SIZE:].strip()
 
 
-# Here an entry will be written to an file, prepared open for binary write (wb / rb)
+
 class fn_crypto:
     def __init__(self):
         pass
-
-# Encrypt string x and write it encrypted
-# Format is no. of bytes (2 bytes long) and then the bytes     
+    
     def fn_write_encrypt(self, f, x):
         cip = crypto
         x = cip.encrypt(x)
         f.write(len(x).to_bytes(2, 'little'))
         f.write(x)
 
-# Write eof-indicator with 0x00 0x00
+
     def fn_write_eof_encrypt(self, f):
         x=0
         f.write(x.to_bytes(2, 'little'))
         
         
-# Read encrypted entry and decrypt it as string
-# Format is no. of bytes (2 bytes long) and then the bytes     
     def fn_read_decrypt(self, f):
         cip = crypto
         x = int.from_bytes(f.read(2), "little")
@@ -85,16 +74,11 @@ class fn_crypto:
         else: return ""
 
 
-# Read x bytes encrypted entry and decrypt it as string
-# No. of bytes are given     
     def fn_read_str_decrypt(self, f, x):
         cip = crypto()
         return str(cip.decrypt(f.read(x)), 'utf-8')
+        
 
-
-# Search a message for a given key in an encrypted file
-# String-format is KEY:MESSAGE
-# Returns Message or 0, if Key not found
     def get_decrypt_key(self, fn, key):
         f = open(fn, "rb")
         s = self.fn_read_decrypt(f)
@@ -103,5 +87,6 @@ class fn_crypto:
                 f.close()
                 return str(s[s.find(":")+1:], 'utf-8')
             s = self.fn_read_decrypt(f)
-        f.close()    
-        return 0    
+        f.close()
+        print('Err in crypto_keys: key not found')
+        return ''    
